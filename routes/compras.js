@@ -12,12 +12,14 @@ router.post('/', function (req, res, next) {
   /* quando a promise for resolvida vai retornar o send para o front,
   que e o retorno que veio da cielo!*/
   cielo.compra(req.body).then((result) => {
-    cielo.captura(result.Payment.PaymentId)
+    const paymentId = result.Payment.PaymentId;
+    cielo.captura(paymentId)
       .then((result) => {
         if (result.Status == 2) {
           res.status(201).send({
             "Status": "Success",
-            "Message": "Compra realizada com sucesso!"
+            "Message": "Compra realizada com sucesso!",
+            "CompraId": paymentId
           });
         }
         else {
@@ -40,8 +42,30 @@ router.post('/', function (req, res, next) {
 
 
 /* GET status de compra. */
-router.get('/:compra_id/status', function(req, res, next) {
-  res.send('Loading status....');
+router.get('/:compra_id/status', function (req, res, next) {
+  //res.send('Loading status....');
+  cielo.consulta(req.params.compra_id).then((result) => {
+
+   // console.log(result);
+    let message = {};
+    
+    switch (result.Payment.Status) {
+      case 1: message = { 'Status': 'Pagamento autorizado.' };
+        break;
+      
+      case 2: message = { 'Status': 'Pagamento realizado.' };
+        break;
+      
+      case 12: message = { 'Status': 'Pagamento pendente.' };
+        break;
+      
+      default: message = { 'Status': 'Pagamento falhou.' };
+      
+    }
+
+    res.send(message);
+
+  });  
 });
 
 module.exports = router;
